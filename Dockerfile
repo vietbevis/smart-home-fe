@@ -1,43 +1,39 @@
-# Giai đoạn 1: Cài đặt dependencies
-FROM node:22-alpine AS deps
+# Use an official Node.js runtime as the base image
+FROM node:22-alpine AS builder
+
+# Set the working directory
 WORKDIR /app
 
-# Cài đặt gói cần thiết cho Alpine
-RUN apk add --no-cache libc6-compat
-
-# Sao chép các tệp cấu hình và cài đặt dependencies
+# Copy only package.json and package-lock.json to install dependencies
 COPY package.json package-lock.json ./
+
+# Install dependencies
 RUN npm ci
 
-# Giai đoạn 2: Build ứng dụng
-FROM node:22-alpine AS builder
-WORKDIR /app
-
-# Sao chép node_modules từ giai đoạn deps
-COPY --from=deps /app/node_modules ./node_modules
-
-# Sao chép toàn bộ mã nguồn
+# Copy the rest of the application code (includes .env, config files, etc.)
 COPY . .
 
-# Build ứng dụng Next.js
+# Build the Next.js application
 RUN npm run build
 
-# Giai đoạn 3: Tạo image production
-FROM node:22-alpine AS production
+# Production stage
+FROM node:22-alpine AS runner
+
+# Set the working directory
 WORKDIR /app
 
-# Sao chép các tệp cần thiết từ giai đoạn builder
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+# Copy only the necessary files from the builder stage
+COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/next.config.ts ./next.config.ts
 
-# Thiết lập biến môi trường
+# Set the environment to production
 ENV NODE_ENV=production
 
-# Mở cổng ứng dụng (thường là 3000 cho Next.js)
+# Expose the port the app runs on
 EXPOSE 3000
 
-# Lệnh khởi động ứng dụng
-CMD ["node", "server.js"]
+# Start the Next.js application
+CMD ["npm", "start"]
