@@ -1,21 +1,17 @@
-// Firebase Messaging Service Worker
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js');
-importScripts('https://www.gstatic.com/firebasejs/9.0.0/firebase-messaging-compat.js');
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
 
-// Firebase config will be injected via query params when registering
-const urlParams = new URLSearchParams(location.search);
-const config = Object.fromEntries(urlParams);
+const firebaseConfig = {
+  apiKey: "AIzaSyCcpwlH9LumJuIWRGEEKg8vmILVhm9D8h8",
+  authDomain: "smarthome-babad.firebaseapp.com",
+  projectId: "smarthome-babad",
+  storageBucket: "smarthome-babad.firebasestorage.app",
+  messagingSenderId: "633175270592",
+  appId: "1:633175270592:web:8a4050204512b5bce9b925",
+  measurementId: "G-SCRRX5E1QK"
+};
 
-// Initialize Firebase in the service worker
-firebase.initializeApp({
-  apiKey: config.apiKey,
-  authDomain: config.authDomain,
-  projectId: config.projectId,
-  storageBucket: config.storageBucket,
-  messagingSenderId: config.messagingSenderId,
-  appId: config.appId
-});
-
+// Initialize Firebase
+const firebase = initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 // Handle background messages
