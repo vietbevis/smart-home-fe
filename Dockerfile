@@ -19,6 +19,10 @@ RUN npm run build
 # Production stage
 FROM node:22-alpine AS runner
 
+# Create a non-root user
+RUN addgroup -g 1001 -S smart-home-fe && \
+    adduser -S smart-home-fe -u 1001
+
 # Set the working directory
 WORKDIR /app
 
@@ -27,10 +31,16 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/public ./public
-COPY --from=builder /app/next.config.ts ./next.config.ts
+COPY --from=builder /app/next.config.js ./next.config.js
+
+# Change ownership of the app directory to the non-root user
+RUN chown -R smart-home-fe:smart-home-fe /app
 
 # Set the environment to production
 ENV NODE_ENV=production
+
+# Switch to non-root user
+USER smart-home-fe
 
 # Expose the port the app runs on
 EXPOSE 3000
