@@ -55,26 +55,9 @@ export async function initializeFCM() {
   if (typeof window === "undefined" || !messaging) return;
 
   try {
-    // Register service worker with Firebase config as query params
+    // Register service worker
     if ("serviceWorker" in navigator) {
-      const swUrl = new URL(
-        "/firebase-messaging-sw.js",
-        window.location.origin
-      );
-      swUrl.searchParams.set("apiKey", firebaseConfig.apiKey || "");
-      swUrl.searchParams.set("authDomain", firebaseConfig.authDomain || "");
-      swUrl.searchParams.set("projectId", firebaseConfig.projectId || "");
-      swUrl.searchParams.set(
-        "storageBucket",
-        firebaseConfig.storageBucket || ""
-      );
-      swUrl.searchParams.set(
-        "messagingSenderId",
-        firebaseConfig.messagingSenderId || ""
-      );
-      swUrl.searchParams.set("appId", firebaseConfig.appId || "");
-
-      await navigator.serviceWorker.register(swUrl.toString());
+      await navigator.serviceWorker.register("/firebase-messaging-sw.js");
     }
 
     // Request permission
