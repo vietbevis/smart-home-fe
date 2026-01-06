@@ -82,8 +82,11 @@ export async function initializeFCM() {
       console.log("📩 Foreground message:", payload);
 
       // Show toast notification
-      toast(payload.notification?.title || "Thông báo", {
-        description: payload.notification?.body,
+      const title = payload.notification?.title || "Thông báo";
+      const body = payload.notification?.body || "";
+      
+      toast.info(title, {
+        description: body,
         duration: 5000,
       });
 

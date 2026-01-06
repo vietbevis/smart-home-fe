@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Shield,
   Key,
   CreditCard,
   UserPlus,
@@ -15,13 +14,11 @@ import {
   User,
   Wifi,
   WifiOff,
-  Bell,
-  BellOff,
   Lock,
-  Unlock,
   Eye,
   EyeOff,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { AdminOnly } from '@/components/auth/RoleGuard';
 import { useMqtt, subscribeToEnrollment } from '@/hooks/useMqtt';
@@ -71,9 +68,8 @@ export function SecuritySettings() {
   const [showPins, setShowPins] = useState(false);
   const [pinLoading, setPinLoading] = useState(false);
 
-  // MQTT for security mode
-  const { devices, publish, connected } = useMqtt();
-  const securityModeActive = devices.alarm?.status === 'on';
+  // MQTT for real-time updates
+  const { connected } = useMqtt();
 
   const fetchData = useCallback(async () => {
     try {
@@ -191,24 +187,27 @@ export function SecuritySettings() {
 
   // PIN change handler
   const handlePinChange = async () => {
+    if (currentPin.length !== 4 || !/^\d+$/.test(currentPin)) {
+      toast.error('Mã PIN hiện tại phải là 4 chữ số');
+      return;
+    }
     if (newPin.length !== 4 || !/^\d+$/.test(newPin)) {
-      setError('Mã PIN phải là 4 chữ số');
+      toast.error('Mã PIN mới phải là 4 chữ số');
       return;
     }
     if (newPin !== confirmPin) {
-      setError('Mã PIN xác nhận không khớp');
+      toast.error('Mã PIN xác nhận không khớp');
       return;
     }
 
     setPinLoading(true);
-    setError(null);
 
     try {
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/doors/pin`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ pin: newPin })
+        body: JSON.stringify({ pin: newPin, currentPin })
       });
 
       if (!res.ok) {
@@ -216,31 +215,15 @@ export function SecuritySettings() {
         throw new Error(data.error || 'Không thể đổi PIN');
       }
 
-      setSuccess('Đã cập nhật mã PIN thành công');
+      toast.success('Đã cập nhật mã PIN thành công');
       setShowPinModal(false);
       setCurrentPin('');
       setNewPin('');
       setConfirmPin('');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Lỗi không xác định');
+      toast.error(err instanceof Error ? err.message : 'Lỗi không xác định');
     } finally {
       setPinLoading(false);
-    }
-  };
-
-  // Security mode handlers - Only siren and warning lights ON, other devices OFF
-  const toggleSecurityMode = (activate: boolean) => {
-    if (activate) {
-      // Turn ON alarm (siren + warning light)
-      publish('home/alert/control', { action: 'on' });
-      // Explicitly turn OFF fan and pump
-      publish('home/fan/control', { action: 'off' });
-      publish('home/pump/control', { action: 'off' });
-      setSuccess('Đã kích hoạt chế độ bảo mật (còi + đèn cảnh báo)');
-    } else {
-      // Turn OFF alarm
-      publish('home/alert/control', { action: 'off' });
-      setSuccess('Đã tắt chế độ bảo mật');
     }
   };
 
@@ -306,7 +289,7 @@ export function SecuritySettings() {
         )}
 
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-3 gap-3">
           <div className="rounded-xl border bg-card p-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               {connected ? <Wifi className="h-4 w-4 text-success" /> : <WifiOff className="h-4 w-4 text-danger" />}
@@ -321,16 +304,6 @@ export function SecuritySettings() {
           <div className="rounded-xl border bg-card p-4 text-center">
             <p className="text-2xl font-bold text-warning">{usersWithoutCard}</p>
             <p className="text-xs text-muted-foreground">Chưa có thẻ</p>
-          </div>
-          <div className="rounded-xl border bg-card p-4 text-center">
-            <div className={cn(
-              'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium mb-1',
-              securityModeActive ? 'bg-danger/10 text-danger' : 'bg-muted text-muted-foreground'
-            )}>
-              {securityModeActive ? <Bell className="h-3 w-3" /> : <BellOff className="h-3 w-3" />}
-              {securityModeActive ? 'BẬT' : 'TẮT'}
-            </div>
-            <p className="text-xs text-muted-foreground">Chế độ bảo mật</p>
           </div>
         </div>
 
@@ -424,96 +397,26 @@ export function SecuritySettings() {
             </div>
           </div>
 
-          {/* Right Column */}
-          <div className="space-y-6">
-            {/* PIN Settings */}
-            <div className="rounded-2xl border bg-card p-5">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
-                  <Key className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Mã PIN cửa</h3>
-                  <p className="text-xs text-muted-foreground">Mật khẩu mở cửa 4 chữ số</p>
-                </div>
+          {/* Right Column - PIN Settings */}
+          <div className="rounded-2xl border bg-card p-5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-warning/10">
+                <Key className="h-5 w-5 text-warning" />
               </div>
-              <p className="text-sm text-muted-foreground mb-4">
-                Mã PIN được sử dụng để mở cửa qua bàn phím. Thay đổi sẽ được đồng bộ ngay đến ESP32.
-              </p>
-              <button
-                onClick={() => setShowPinModal(true)}
-                className="w-full py-3 rounded-xl bg-warning/10 text-warning hover:bg-warning/20 font-medium transition-colors"
-              >
-                Đổi mã PIN
-              </button>
-            </div>
-
-            {/* Security Mode */}
-            <div className={cn(
-              'rounded-2xl border p-5 transition-all',
-              securityModeActive ? 'border-danger/50 bg-danger/5' : 'bg-card'
-            )}>
-              <div className="flex items-center gap-3 mb-4">
-                <div className={cn(
-                  'flex h-10 w-10 items-center justify-center rounded-xl',
-                  securityModeActive ? 'bg-danger/10' : 'bg-muted'
-                )}>
-                  <Shield className={cn('h-5 w-5', securityModeActive ? 'text-danger' : 'text-muted-foreground')} />
-                </div>
-                <div>
-                  <h3 className="font-semibold">Chế độ bảo mật</h3>
-                  <p className={cn(
-                    'text-xs',
-                    securityModeActive ? 'text-danger' : 'text-muted-foreground'
-                  )}>
-                    {securityModeActive ? '🚨 Đang hoạt động' : 'Không hoạt động'}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-3 mb-4">
-                <p className="text-sm text-muted-foreground">
-                  Khi kích hoạt, hệ thống sẽ:
-                </p>
-                <ul className="text-sm space-y-1.5 text-muted-foreground">
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-danger" />
-                    Bật còi báo động và đèn cảnh báo
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                    Tắt quạt và máy bơm (an toàn)
-                  </li>
-                </ul>
-                <p className="text-xs text-muted-foreground italic mt-2">
-                  💡 Quạt và bơm chỉ tự động bật khi phát hiện cháy/gas từ cảm biến
-                </p>
-              </div>
-
-              <div className="flex gap-3">
-                {securityModeActive ? (
-                  <button
-                    onClick={() => toggleSecurityMode(false)}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-success text-white hover:bg-success/90 font-medium transition-colors"
-                  >
-                    <Unlock className="h-4 w-4" />
-                    Tắt chế độ bảo mật
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => {
-                      if (window.confirm('Kích hoạt chế độ bảo mật? Còi báo động và đèn cảnh báo sẽ bật.')) {
-                        toggleSecurityMode(true);
-                      }
-                    }}
-                    className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-danger text-white hover:bg-danger/90 font-medium transition-colors"
-                  >
-                    <Lock className="h-4 w-4" />
-                    Kích hoạt bảo mật
-                  </button>
-                )}
+              <div>
+                <h3 className="font-semibold">Mã PIN cửa</h3>
+                <p className="text-xs text-muted-foreground">Mật khẩu mở cửa 4 chữ số</p>
               </div>
             </div>
+            <p className="text-sm text-muted-foreground mb-4">
+              Mã PIN được sử dụng để mở cửa qua bàn phím. Thay đổi sẽ được đồng bộ ngay đến ESP32.
+            </p>
+            <button
+              onClick={() => setShowPinModal(true)}
+              className="w-full py-3 rounded-xl bg-warning/10 text-warning hover:bg-warning/20 font-medium transition-colors"
+            >
+              Đổi mã PIN
+            </button>
           </div>
         </div>
 
@@ -632,13 +535,13 @@ export function SecuritySettings() {
               
               <div className="p-5 space-y-4">
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Mã PIN mới</label>
+                  <label className="text-sm font-medium mb-2 block">Mã PIN hiện tại</label>
                   <div className="relative">
                     <input
                       type={showPins ? 'text' : 'password'}
-                      value={newPin}
-                      onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                      placeholder="Nhập 4 chữ số"
+                      value={currentPin}
+                      onChange={(e) => setCurrentPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Nhập PIN hiện tại"
                       className="w-full px-4 py-3 rounded-xl border bg-background text-center text-2xl tracking-widest font-mono"
                       maxLength={4}
                     />
@@ -651,9 +554,21 @@ export function SecuritySettings() {
                     </button>
                   </div>
                 </div>
+
+                <div>
+                  <label className="text-sm font-medium mb-2 block">Mã PIN mới</label>
+                  <input
+                    type={showPins ? 'text' : 'password'}
+                    value={newPin}
+                    onChange={(e) => setNewPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                    placeholder="Nhập 4 chữ số"
+                    className="w-full px-4 py-3 rounded-xl border bg-background text-center text-2xl tracking-widest font-mono"
+                    maxLength={4}
+                  />
+                </div>
                 
                 <div>
-                  <label className="text-sm font-medium mb-2 block">Xác nhận mã PIN</label>
+                  <label className="text-sm font-medium mb-2 block">Xác nhận mã PIN mới</label>
                   <input
                     type={showPins ? 'text' : 'password'}
                     value={confirmPin}
@@ -673,7 +588,7 @@ export function SecuritySettings() {
                 <div className="pt-2">
                   <button
                     onClick={handlePinChange}
-                    disabled={pinLoading || newPin.length !== 4 || newPin !== confirmPin}
+                    disabled={pinLoading || currentPin.length !== 4 || newPin.length !== 4 || newPin !== confirmPin}
                     className="w-full py-3 rounded-xl bg-primary text-white hover:bg-primary/90 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {pinLoading ? (
