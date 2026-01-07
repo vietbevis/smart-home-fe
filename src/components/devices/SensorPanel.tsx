@@ -1,8 +1,17 @@
-'use client';
+"use client";
 
-import { Flame, Wind, Sun, Moon, CloudRain, CloudSun, Activity, Shirt } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { SensorData, DeviceState, DeviceId } from '@/types';
+import { cn } from "@/lib/utils";
+import { DeviceId, DeviceState, SensorData } from "@/types";
+import {
+  Activity,
+  CloudRain,
+  CloudSun,
+  Flame,
+  Moon,
+  Shirt,
+  Sun,
+  Wind,
+} from "lucide-react";
 
 interface SensorPanelProps {
   sensors: SensorData;
@@ -17,12 +26,12 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
   const isGasWarning = gasLevel > gasThreshold * 0.7;
 
   const fireDetected = sensors.fire?.detected ?? false;
-  
-  const dryerRackOpen = devices?.dryer_rack?.status === 'open';
-  
+
+  const dryerRackOpen = devices?.dryer_rack?.status === "open";
+
   // Ambient light from sensor
   const ambientBright = sensors.light?.bright ?? true;
-  
+
   const isRaining = sensors.rain?.raining ?? false;
 
   return (
@@ -34,40 +43,52 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
         </div>
         <h2 className="font-semibold">Cảm biến & Trạng thái</h2>
       </div>
-      
+
       {/* Sensors grid */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
         {/* Gas */}
         <div
           className={cn(
-            'rounded-lg p-3 transition-all',
-            isGasDanger && 'bg-danger/10 ring-1 ring-danger',
-            isGasWarning && !isGasDanger && 'bg-warning/10',
-            !isGasWarning && 'bg-muted/50'
+            "rounded-lg p-3 transition-all",
+            isGasDanger && "bg-danger/10 ring-1 ring-danger",
+            isGasWarning && !isGasDanger && "bg-warning/10",
+            !isGasWarning && "bg-muted/50"
           )}
         >
           <div className="flex items-center gap-1.5 mb-1">
-            <Wind 
+            <Wind
               className={cn(
-                'h-4 w-4',
-                isGasDanger ? 'text-danger' : isGasWarning ? 'text-warning' : 'text-muted-foreground'
-              )} 
+                "h-4 w-4",
+                isGasDanger
+                  ? "text-danger"
+                  : isGasWarning
+                  ? "text-warning"
+                  : "text-muted-foreground"
+              )}
             />
             <span className="text-xs font-medium">Gas</span>
           </div>
-          <p className={cn(
-            'text-lg sm:text-xl font-bold',
-            isGasDanger && 'text-danger',
-            isGasWarning && !isGasDanger && 'text-warning'
-          )}>
+          <p
+            className={cn(
+              "text-lg sm:text-xl font-bold",
+              isGasDanger && "text-danger",
+              isGasWarning && !isGasDanger && "text-warning"
+            )}
+          >
             {gasLevel}
-            <span className="text-xs font-normal text-muted-foreground ml-0.5">ppm</span>
+            <span className="text-xs font-normal text-muted-foreground ml-0.5">
+              ppm
+            </span>
           </p>
           <div className="mt-1.5 h-1.5 rounded-full bg-muted overflow-hidden">
             <div
               className={cn(
-                'h-full rounded-full transition-all duration-500',
-                gasPercent > 80 ? 'bg-danger' : gasPercent > 50 ? 'bg-warning' : 'bg-success'
+                "h-full rounded-full transition-all duration-500",
+                gasPercent > 80
+                  ? "bg-danger"
+                  : gasPercent > 50
+                  ? "bg-warning"
+                  : "bg-success"
               )}
               style={{ width: `${gasPercent}%` }}
             />
@@ -77,31 +98,36 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
         {/* Fire */}
         <div
           className={cn(
-            'rounded-lg p-3 transition-all',
-            fireDetected ? 'bg-danger/10 ring-1 ring-danger' : 'bg-muted/50'
+            "rounded-lg p-3 transition-all",
+            fireDetected ? "bg-danger/10 ring-1 ring-danger" : "bg-muted/50"
           )}
         >
           <div className="flex items-center gap-1.5 mb-1">
-            <Flame 
+            <Flame
               className={cn(
-                'h-4 w-4',
-                fireDetected ? 'text-danger animate-bounce' : 'text-muted-foreground'
-              )} 
+                "h-4 w-4",
+                fireDetected
+                  ? "text-danger animate-bounce"
+                  : "text-muted-foreground"
+              )}
             />
             <span className="text-xs font-medium">Lửa</span>
           </div>
-          <p className={cn('text-sm sm:text-base font-bold', fireDetected && 'text-danger')}>
-            {fireDetected ? 'PHÁT HIỆN!' : 'An toàn'}
+          <p
+            className={cn(
+              "text-sm sm:text-base font-bold",
+              fireDetected && "text-danger"
+            )}
+          >
+            {fireDetected ? "PHÁT HIỆN!" : "An toàn"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Giá trị: {sensors.fire?.value ?? '--'}
+            Giá trị: {sensors.fire?.value ?? "--"}
           </p>
         </div>
 
         {/* Ambient Light Sensor */}
-        <div className={cn(
-          'rounded-lg p-3 transition-all bg-muted/50'
-        )}>
+        <div className={cn("rounded-lg p-3 transition-all bg-muted/50")}>
           <div className="flex items-center gap-1.5 mb-1">
             {ambientBright ? (
               <Sun className="h-4 w-4 text-warning" />
@@ -111,7 +137,7 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
             <span className="text-xs font-medium">Ánh sáng</span>
           </div>
           <p className="text-sm sm:text-base font-bold">
-            {ambientBright ? 'Sáng' : 'Tối'}
+            {ambientBright ? "Sáng" : "Tối"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
             Cảm biến môi trường
@@ -121,8 +147,8 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
         {/* Rain */}
         <div
           className={cn(
-            'rounded-lg p-3 transition-all',
-            isRaining ? 'bg-primary/10 ring-1 ring-primary' : 'bg-muted/50'
+            "rounded-lg p-3 transition-all",
+            isRaining ? "bg-primary/10 ring-1 ring-primary" : "bg-muted/50"
           )}
         >
           <div className="flex items-center gap-1.5 mb-1">
@@ -133,45 +159,63 @@ export function SensorPanel({ sensors, devices }: SensorPanelProps) {
             )}
             <span className="text-xs font-medium">Thời tiết</span>
           </div>
-          <p className={cn(
-            'text-sm sm:text-base font-bold',
-            isRaining && 'text-primary'
-          )}>
-            {isRaining ? 'Có mưa' : 'Khô ráo'}
+          <p
+            className={cn(
+              "text-sm sm:text-base font-bold",
+              isRaining && "text-primary"
+            )}
+          >
+            {isRaining ? "Có mưa" : "Khô ráo"}
           </p>
           <p className="text-xs text-muted-foreground mt-0.5">
-            {isRaining ? 'Nên thu đồ' : 'Phơi được'}
+            {isRaining ? "Nên thu đồ" : "Phơi được"}
           </p>
         </div>
 
         {/* Dryer Rack Status */}
         <div
           className={cn(
-            'rounded-lg p-3 transition-all',
-            dryerRackOpen ? 'bg-success/10' : 'bg-muted/50',
-            dryerRackOpen && isRaining && 'bg-warning/10 ring-1 ring-warning'
+            "rounded-lg p-3 transition-all",
+            dryerRackOpen ? "bg-success/10" : "bg-muted/50",
+            dryerRackOpen && isRaining && "bg-warning/10 ring-1 ring-warning"
           )}
         >
           <div className="flex items-center gap-1.5 mb-1">
-            <Shirt 
+            <Shirt
               className={cn(
-                'h-4 w-4',
-                dryerRackOpen && isRaining ? 'text-warning' : dryerRackOpen ? 'text-success' : 'text-muted-foreground'
-              )} 
+                "h-4 w-4",
+                dryerRackOpen && isRaining
+                  ? "text-warning"
+                  : dryerRackOpen
+                  ? "text-success"
+                  : "text-muted-foreground"
+              )}
             />
             <span className="text-xs font-medium">Giàn phơi</span>
           </div>
-          <p className={cn(
-            'text-sm sm:text-base font-bold',
-            dryerRackOpen && isRaining ? 'text-warning' : dryerRackOpen && 'text-success'
-          )}>
-            {dryerRackOpen ? 'Đang mở' : 'Đã thu'}
+          <p
+            className={cn(
+              "text-sm sm:text-base font-bold",
+              dryerRackOpen && isRaining
+                ? "text-warning"
+                : dryerRackOpen && "text-success"
+            )}
+          >
+            {dryerRackOpen ? "Đang mở" : "Đã thu"}
           </p>
-          <p className={cn(
-            'text-xs mt-0.5',
-            dryerRackOpen && isRaining ? 'text-warning font-medium' : 'text-muted-foreground'
-          )}>
-            {dryerRackOpen && isRaining ? '⚠️ Có mưa!' : dryerRackOpen ? 'Đang phơi' : 'Sẵn sàng'}
+          <p
+            className={cn(
+              "text-xs mt-0.5",
+              dryerRackOpen && isRaining
+                ? "text-warning font-medium"
+                : "text-muted-foreground"
+            )}
+          >
+            {dryerRackOpen && isRaining
+              ? "⚠️ Có mưa!"
+              : dryerRackOpen
+              ? "Đang phơi"
+              : "Sẵn sàng"}
           </p>
         </div>
       </div>
