@@ -7,8 +7,8 @@ import { toast } from "sonner";
 
 const BROKER_URL =
   process.env.NEXT_PUBLIC_MQTT_WS_URL || "wss://emqx-ws.vittapcode.id.vn/mqtt";
-const MQTT_USERNAME = "test";
-const MQTT_PASSWORD = "viet";
+const MQTT_USERNAME = process.env.NEXT_PUBLIC_MQTT_USERNAME || "test";
+const MQTT_PASSWORD = process.env.NEXT_PUBLIC_MQTT_PASSWORD || "viet";
 
 type DeviceStates = Record<DeviceId, DeviceState>;
 
@@ -72,7 +72,7 @@ function notify() {
 function showAlert(
   title: string,
   message: string,
-  type: "error" | "warning" = "error"
+  type: "error" | "warning" = "error",
 ) {
   toast[type](`${title}: ${message}`);
   alertSound?.play().catch(() => {});
@@ -155,7 +155,7 @@ function handleMessage(topic: string, payload: Buffer) {
         showAlert(
           "🚪 Cảnh báo cửa",
           "Phát hiện truy cập bất thường!",
-          "warning"
+          "warning",
         );
       }
     }
@@ -170,7 +170,7 @@ function handleMessage(topic: string, payload: Buffer) {
       if (data.detected) {
         showAlert(
           "🔥 Phát hiện cháy!",
-          data.location || "Vị trí không xác định"
+          data.location || "Vị trí không xác định",
         );
       }
     } else if (topic === "home/sensor/light") {
@@ -202,7 +202,7 @@ function handleMessage(topic: string, payload: Buffer) {
       showAlert(
         "🚨 Thẻ RFID bị mất",
         `${data.username} đã báo mất thẻ`,
-        "warning"
+        "warning",
       );
     }
     // RFID enrollment result
@@ -213,7 +213,7 @@ function handleMessage(topic: string, payload: Buffer) {
         showAlert(
           "✅ Đăng ký thẻ",
           data.message || `Đã đăng ký cho ${data.username}`,
-          "warning"
+          "warning",
         );
       }
     }
@@ -306,11 +306,11 @@ export function useMqtt() {
       deviceId: DeviceId,
       action: "on" | "off",
       controlTopic: string,
-      extraPayload?: object
+      extraPayload?: object,
     ) => {
       console.log(
         `Control device: ${deviceId}, action: ${action}, topic: ${controlTopic}`,
-        extraPayload
+        extraPayload,
       );
 
       const previousState = { ...deviceStates[deviceId] };
@@ -366,7 +366,7 @@ export function useMqtt() {
         pendingRollbacks.current.delete(deviceId);
       }, 5000);
     },
-    [publish]
+    [publish],
   );
 
   return {
@@ -413,7 +413,7 @@ export function subscribeToRfidLost(
     userId: number;
     username: string;
     cardUid: string;
-  }) => void
+  }) => void,
 ) {
   rfidLostListeners.add(callback);
   return () => {
@@ -427,7 +427,7 @@ export function subscribeToEnrollment(
     success: boolean;
     message: string;
     username?: string;
-  }) => void
+  }) => void,
 ) {
   enrollmentListeners.add(callback);
   return () => {
