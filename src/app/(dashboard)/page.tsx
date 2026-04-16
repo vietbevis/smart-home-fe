@@ -2,15 +2,21 @@
 
 import { useMqtt } from '@/hooks/useMqtt';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/context/AuthContext';
 import { EmergencyPanel } from '@/components/devices/EmergencyPanel';
 import { RoomSection } from '@/components/devices/RoomSection';
 import { SensorPanel } from '@/components/devices/SensorPanel';
 import { RealTimeClock } from '@/components/ui/RealTimeClock';
+import { DynamicGreeting } from '@/components/layout/DynamicGreeting';
 import { DeviceId } from '@/types';
 
 export default function DashboardPage() {
   const { connected, devices, sensors, controlDevice } = useMqtt();
   const { can } = usePermissions();
+  const { user } = useAuth();
+
+  const activeDevices = Object.values(devices).filter(d => d.state === 'on').length;
+  const totalDevices = Object.keys(devices).length;
 
   const handleEmergencyControl = (
     deviceId: DeviceId,
@@ -35,19 +41,18 @@ export default function DashboardPage() {
     <div className="flex gap-4 sm:gap-6">
       {/* Main content */}
       <div className="flex-1 space-y-4 sm:space-y-6 min-w-0">
-        {/* Header with mobile clock */}
-        <div className="flex flex-col gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Bảng điều khiển</h1>
-            <p className="text-sm text-muted-foreground">
-              Giám sát và điều khiển thiết bị thông minh
-            </p>
-          </div>
-          
-          {/* Mobile clock - visible on small screens */}
-          <div className="lg:hidden">
-            <RealTimeClock connected={connected} compact />
-          </div>
+        {/* Dynamic Greeting */}
+        {user && (
+          <DynamicGreeting 
+            user={user} 
+            deviceCount={totalDevices}
+            activeDevices={activeDevices}
+          />
+        )}
+        
+        {/* Mobile clock - visible on small screens */}
+        <div className="lg:hidden">
+          <RealTimeClock connected={connected} compact />
         </div>
 
         {/* Emergency Panel */}

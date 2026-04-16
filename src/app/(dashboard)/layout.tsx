@@ -4,8 +4,10 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useMqtt } from '@/hooks/useMqtt';
+import { useAutoTheme } from '@/hooks/useAutoTheme';
 import { Navbar } from '@/components/layout/Navbar';
 import { UserPanel } from '@/components/layout/UserPanel';
+import { PendingUsersBadge } from '@/components/admin/PendingUsersBadge';
 import { initializeFCM } from '@/lib/firebase';
 import { User } from '@/types';
 
@@ -13,6 +15,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const { user, isLoading, logout, updateUser } = useAuth();
   const { connected } = useMqtt();
   const router = useRouter();
+  
+  // Auto theme switching based on time
+  useAutoTheme();
 
   useEffect(() => {
     if (!isLoading && !user) {
@@ -48,6 +53,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         onLogout={logout}
         onUserUpdate={(updates) => updateUser(updates as Partial<User>)}
       />
+      <PendingUsersBadge />
     </div>
   );
 }

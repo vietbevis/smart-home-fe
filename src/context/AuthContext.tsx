@@ -10,7 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  register: (username: string, password: string) => Promise<{ approved: boolean; role: string }>;
   logout: () => void;
   can: (permission: Permission) => boolean;
   updateUser: (updates: Partial<User>) => void;
@@ -41,7 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const register = useCallback(async (username: string, password: string) => {
-    await api.register(username, password);
+    const result = await api.register(username, password);
+    return { approved: result.approved, role: result.role };
   }, []);
 
   const logout = useCallback(() => {

@@ -1,7 +1,7 @@
 import { DeviceConfig, DeviceId } from '@/types';
 import { 
-  Siren, 
-  AlertCircle, 
+  Bell,
+  Lightbulb as LightbulbIcon,
   Fan, 
   Droplets, 
   Palette, 
@@ -13,8 +13,8 @@ import {
 
 // Icon mapping for each device
 export const DEVICE_ICONS: Record<DeviceId, LucideIcon> = {
-  alarm: Siren,
-  warning_light: AlertCircle,
+  alarm: Bell,
+  warning_light: LightbulbIcon,
   fan: Fan,
   pump: Droplets,
   neo_bedroom: Palette,
@@ -25,7 +25,7 @@ export const DEVICE_ICONS: Record<DeviceId, LucideIcon> = {
 
 // Device configuration - centralized device definitions
 export const DEVICES: DeviceConfig[] = [
-  // Emergency devices - always visible at top
+  // Emergency status indicators (read-only, controlled by ESP32 sensors)
   {
     id: 'alarm',
     name: 'Alarm Siren',
@@ -44,6 +44,7 @@ export const DEVICES: DeviceConfig[] = [
     mqttTopic: 'home/alert/state',
     controlTopic: 'home/alert/control',
   },
+  // Emergency controllable devices
   {
     id: 'fan',
     name: 'Fan',

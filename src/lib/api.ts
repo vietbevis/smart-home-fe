@@ -21,6 +21,11 @@ class ApiClient {
       throw new Error(error.error || 'Yêu cầu thất bại');
     }
 
+    // Handle 204 No Content response
+    if (res.status === 204) {
+      return {} as T;
+    }
+
     return res.json();
   }
 
@@ -33,7 +38,7 @@ class ApiClient {
   }
 
   register(username: string, password: string) {
-    return this.request<{ id: number; username: string; role: string }>(
+    return this.request<{ id: number; username: string; role: string; approved: boolean }>(
       '/auth/register',
       { method: 'POST', body: JSON.stringify({ username, password }) }
     );
@@ -41,6 +46,40 @@ class ApiClient {
 
   getMe() {
     return this.request<{ id: number; username: string; role: 'ADMIN' | 'USER' }>('/auth/me');
+  }
+
+  // User management (admin)
+  getUsers() {
+    return this.request<Array<{ id: number; username: string; role: 'ADMIN' | 'USER'; approved: boolean; createdAt: string }>>('/auth/users');
+  }
+
+  createUser(username: string, password: string, role: 'ADMIN' | 'USER') {
+    return this.request<{ id: number; username: string; role: 'ADMIN' | 'USER'; approved: boolean }>(
+      '/auth/users',
+      { method: 'POST', body: JSON.stringify({ username, password, role }) }
+    );
+  }
+
+  getPendingUsers() {
+    return this.request<Array<{ id: number; username: string; role: 'ADMIN' | 'USER'; createdAt: string }>>('/auth/users/pending');
+  }
+
+  approveUser(userId: number) {
+    return this.request<{ id: number; username: string; role: 'ADMIN' | 'USER'; approved: boolean }>(
+      `/auth/users/${userId}/approve`,
+      { method: 'PATCH' }
+    );
+  }
+
+  updateUserRole(userId: number, role: 'ADMIN' | 'USER') {
+    return this.request<{ id: number; username: string; role: 'ADMIN' | 'USER' }>(
+      `/auth/users/${userId}/role`,
+      { method: 'PATCH', body: JSON.stringify({ role }) }
+    );
+  }
+
+  deleteUser(userId: number) {
+    return this.request(`/auth/users/${userId}`, { method: 'DELETE' });
   }
 
   // Alerts

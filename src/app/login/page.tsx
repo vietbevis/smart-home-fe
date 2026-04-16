@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Home, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
+import { WelcomeMessage } from '@/components/auth/WelcomeMessage';
 
 export default function LoginPage() {
   const [isRegister, setIsRegister] = useState(false);
@@ -14,8 +15,14 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login, register } = useAuth();
+  const { login, register, user } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +34,18 @@ export default function LoginPage() {
           toast.error('Mật khẩu xác nhận không khớp');
           return;
         }
-        await register(username, password);
-        toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+        const result = await register(username, password);
+        
+        if (result.approved) {
+          if (result.role === 'ADMIN') {
+            toast.success('Đăng ký thành công! Tài khoản admin đã được kích hoạt. Vui lòng đăng nhập.');
+          } else {
+            toast.success('Đăng ký thành công! Vui lòng đăng nhập.');
+          }
+        } else {
+          toast.success('Đăng ký thành công! Tài khoản của bạn đang chờ admin phê duyệt.');
+        }
+        
         setIsRegister(false);
         setPassword('');
         setConfirmPassword('');
@@ -47,16 +64,29 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background via-background to-muted p-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="mb-8 flex flex-col items-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/25">
-            <Home className="h-8 w-8 text-primary-foreground" />
+        <div className="mb-6 flex flex-col items-center">
+          <div className="relative">
+            {/* Glow effect */}
+            <div className="absolute inset-0 bg-primary/30 rounded-2xl blur-2xl animate-pulse" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-lg shadow-primary/25 animate-in zoom-in-95 duration-500">
+              <Home className="h-8 w-8 text-primary-foreground" />
+            </div>
           </div>
-          <h1 className="mt-4 text-2xl font-bold">SmartHome</h1>
-          <p className="text-sm text-muted-foreground">Điều khiển nhà thông minh</p>
+          <h1 className="mt-4 text-2xl font-bold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent animate-in fade-in slide-in-from-bottom-3 duration-700">
+            SmartHome
+          </h1>
+          <p className="text-sm text-muted-foreground animate-in fade-in slide-in-from-bottom-4 duration-700 delay-100">
+            Hệ thống quản lý nhà thông minh
+          </p>
+        </div>
+
+        {/* Dynamic Welcome Message */}
+        <div className="animate-in fade-in zoom-in-95 duration-700 delay-200">
+          <WelcomeMessage isRegister={isRegister} />
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border bg-card p-8 shadow-xl">
+        <div className="mt-6 rounded-2xl border bg-card/95 backdrop-blur-sm p-8 shadow-xl animate-in fade-in zoom-in-95 duration-700 delay-300">
           {/* Tabs */}
           <div className="mb-6 flex rounded-xl bg-muted p-1">
             <button

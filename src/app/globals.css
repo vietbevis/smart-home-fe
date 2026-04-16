@@ -40,6 +40,26 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
+    transition: background-color 0.5s ease, color 0.5s ease;
+  }
+  
+  /* Smooth theme transitions for all elements */
+  *,
+  *::before,
+  *::after {
+    transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+    transition-duration: 500ms;
+  }
+  
+  /* Preserve animation durations */
+  .animate-spin,
+  .animate-ping,
+  .animate-pulse,
+  .animate-bounce,
+  .animate-spin-slow,
+  .animate-twinkle {
+    transition: none !important;
   }
 }
 
@@ -55,6 +75,62 @@
   
   .zoom-in-95 {
     animation: zoom-in-95 0.2s ease-out;
+  }
+  
+  .slide-in-from-bottom-3 {
+    animation: slide-in-from-bottom 0.5s ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .slide-in-from-bottom-4 {
+    animation: slide-in-from-bottom 0.5s ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .slide-in-from-bottom-5 {
+    animation: slide-in-from-bottom 0.5s ease-out;
+    animation-fill-mode: both;
+  }
+  
+  .delay-100 {
+    animation-delay: 100ms;
+  }
+  
+  .delay-200 {
+    animation-delay: 200ms;
+  }
+  
+  .delay-300 {
+    animation-delay: 300ms;
+  }
+  
+  .duration-500 {
+    animation-duration: 500ms;
+  }
+  
+  .duration-700 {
+    animation-duration: 700ms;
+  }
+  
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+  
+  .animate-twinkle {
+    animation: twinkle 2s ease-in-out infinite;
+  }
+  
+  .animate-gradient {
+    animation: gradient 3s linear infinite;
+  }
+  
+  .animate-shine {
+    animation: shine 3s ease-in-out infinite;
+  }
+  
+  .slide-in-from-bottom-2 {
+    animation: slide-in-from-bottom 0.5s ease-out;
+    animation-fill-mode: both;
   }
 }
 
@@ -84,6 +160,58 @@
   to {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+@keyframes slide-in-from-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes shine {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
   }
 }
 

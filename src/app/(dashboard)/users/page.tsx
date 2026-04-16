@@ -2,7 +2,8 @@
 
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
-import { Edit2, Shield, Trash2, UserPlus, Users } from "lucide-react";
+import { api } from "@/lib/api";
+import { CheckCircle, Edit2, Shield, Trash2, UserCheck, UserPlus, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -10,16 +11,16 @@ interface User {
   id: number;
   username: string;
   role: "ADMIN" | "USER";
+  approved: boolean;
   createdAt: string;
 }
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<number | null>(null);
   const [newUser, setNewUser] = useState({
     username: "",
     password: "",
@@ -28,23 +29,17 @@ export default function UsersPage() {
   const { isAdmin, can } = usePermissions();
 
   useEffect(() => {
-    if (can("security:manage")) {
+    if (isAdmin) {
       fetchUsers();
     } else {
       setIsLoading(false);
     }
-  }, [can]);
+  }, [isAdmin]);
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/auth/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data);
-      }
+      const data = await api.getUsers();
+      setUsers(data);
     } catch (error) {
       toast.error("Không thể tải danh sách người dùng");
     } finally {
@@ -59,27 +54,13 @@ export default function UsersPage() {
     }
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(newUser),
-      });
-
-      if (res.ok) {
-        toast.success("Đã thêm người dùng");
-        setShowAddModal(false);
-        setNewUser({ username: "", password: "", role: "USER" });
-        fetchUsers();
-      } else {
-        const error = await res.json();
-        toast.error(error.error || "Lỗi thêm người dùng");
-      }
-    } catch (error) {
-      toast.error("Lỗi thêm người dùng");
+      await api.createUser(newUser.username, newUser.password, newUser.role as 'ADMIN' | 'USER');
+      toast.success("Đã thêm người dùng");
+      setShowAddModal(false);
+      setNewUser({ username: "", password: "", role: "USER" });
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi thêm người dùng");
     }
   };
 
@@ -88,48 +69,44 @@ export default function UsersPage() {
     newRole: "ADMIN" | "USER"
   ) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/auth/users/${userId}/role`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ role: newRole }),
-      });
-
-      if (res.ok) {
-        toast.success("Đã cập nhật quyền");
-        setEditingUser(null);
-        fetchUsers();
-      } else {
-        toast.error("Lỗi cập nhật quyền");
-      }
-    } catch (error) {
-      toast.error("Lỗi cập nhật quyền");
+      await api.updateUserRole(userId, newRole);
+      toast.success("Đã cập nhật quyền");
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi cập nhật quyền");
     }
   };
 
   const handleDeleteUser = async (userId: number, username: string) => {
+    if (deletingUserId) return; // Prevent double-click
     if (!confirm(`Bạn có chắc muốn xóa người dùng "${username}"?`)) return;
 
+    setDeletingUserId(userId);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_URL}/auth/users/${userId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (res.ok) {
-        toast.success("Đã xóa người dùng");
-        fetchUsers();
-      } else {
-        toast.error("Lỗi xóa người dùng");
-      }
-    } catch (error) {
-      toast.error("Lỗi xóa người dùng");
+      await api.deleteUser(userId);
+      toast.success("Đã xóa người dùng");
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi xóa người dùng");
+    } finally {
+      setDeletingUserId(null);
     }
   };
+
+  const handleApproveUser = async (userId: number, username: string) => {
+    try {
+      await api.approveUser(userId);
+      toast.success(`Đã phê duyệt người dùng "${username}"`);
+      fetchUsers();
+    } catch (error: any) {
+      toast.error(error.message || "Lỗi phê duyệt người dùng");
+    }
+  };
+
+  // Separate pending and approved users
+  const pendingUsers = users.filter((u) => !u.approved);
+  const approvedUsers = users.filter((u) => u.approved);
 
   // Access denied for non-admins
   if (!can("security:manage")) {
@@ -171,110 +148,195 @@ export default function UsersPage() {
         </button>
       </div>
 
-      {/* Users Table */}
-      <div className="rounded-xl border overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-muted/50">
-            <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium">ID</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">
-                Tên đăng nhập
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Quyền</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">
-                Ngày tạo
-              </th>
-              <th className="px-4 py-3 text-right text-sm font-medium">
-                Thao tác
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y">
-            {users.map((user) => (
-              <tr key={user.id} className="hover:bg-muted/30">
-                <td className="px-4 py-3 text-sm">{user.id}</td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{user.username}</span>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  {editingUser?.id === user.id ? (
-                    <select
-                      value={editingUser.role}
-                      onChange={(e) =>
-                        setEditingUser({
-                          ...editingUser,
-                          role: e.target.value as "ADMIN" | "USER",
-                        })
-                      }
-                      className="px-2 py-1 rounded border text-sm"
-                    >
-                      <option value="USER">USER</option>
-                      <option value="ADMIN">ADMIN</option>
-                    </select>
-                  ) : (
-                    <span
-                      className={cn(
-                        "px-2 py-1 rounded-full text-xs font-medium",
-                        user.role === "ADMIN"
-                          ? "bg-primary/10 text-primary"
-                          : "bg-muted text-muted-foreground"
-                      )}
-                    >
-                      {user.role === "ADMIN" ? "Quản trị" : "Người dùng"}
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-2">
-                    {editingUser?.id === user.id ? (
-                      <>
+      {/* Pending Users Section */}
+      {pendingUsers.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <UserCheck className="h-5 w-5 text-warning" />
+            <h2 className="text-xl font-semibold">
+              Người dùng chờ phê duyệt ({pendingUsers.length})
+            </h2>
+          </div>
+          <div className="rounded-xl border border-warning/30 bg-warning/5 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-warning/10">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-medium">ID</th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Tên đăng nhập
+                  </th>
+                  <th className="px-4 py-3 text-left text-sm font-medium">
+                    Ngày đăng ký
+                  </th>
+                  <th className="px-4 py-3 text-right text-sm font-medium">
+                    Thao tác
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y">
+                {pendingUsers.map((user) => (
+                  <tr key={user.id} className="hover:bg-warning/10">
+                    <td className="px-4 py-3 text-sm">{user.id}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{user.username}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {new Date(user.createdAt).toLocaleDateString("vi-VN", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center justify-end gap-2">
                         <button
                           onClick={() =>
-                            handleUpdateRole(user.id, editingUser.role)
+                            handleApproveUser(user.id, user.username)
                           }
-                          className="px-3 py-1 rounded-lg bg-success text-white text-sm"
+                          className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-success text-white hover:bg-success/90 text-sm"
+                          title="Phê duyệt"
                         >
-                          Lưu
-                        </button>
-                        <button
-                          onClick={() => setEditingUser(null)}
-                          className="px-3 py-1 rounded-lg bg-muted text-sm"
-                        >
-                          Hủy
-                        </button>
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setEditingUser(user)}
-                          className="p-2 rounded-lg hover:bg-muted"
-                          title="Sửa quyền"
-                        >
-                          <Edit2 className="h-4 w-4" />
+                          <CheckCircle className="h-4 w-4" />
+                          Phê duyệt
                         </button>
                         <button
                           onClick={() =>
                             handleDeleteUser(user.id, user.username)
                           }
-                          className="p-2 rounded-lg hover:bg-danger/10 text-danger"
-                          title="Xóa"
+                          disabled={deletingUserId === user.id}
+                          className="p-2 rounded-lg hover:bg-danger/10 text-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                          title="Từ chối"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
-                      </>
-                    )}
-                  </div>
-                </td>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Approved Users Section */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <CheckCircle className="h-5 w-5 text-success" />
+          <h2 className="text-xl font-semibold">
+            Người dùng đã phê duyệt ({approvedUsers.length})
+          </h2>
+        </div>
+        <div className="rounded-xl border overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-muted/50">
+              <tr>
+                <th className="px-4 py-3 text-left text-sm font-medium">ID</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">
+                  Tên đăng nhập
+                </th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Quyền</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">
+                  Ngày tạo
+                </th>
+                <th className="px-4 py-3 text-right text-sm font-medium">
+                  Thao tác
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y">
+              {approvedUsers.map((user) => (
+                <tr key={user.id} className="hover:bg-muted/30">
+                  <td className="px-4 py-3 text-sm">{user.id}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">{user.username}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    {editingUser?.id === user.id ? (
+                      <select
+                        value={editingUser.role}
+                        onChange={(e) =>
+                          setEditingUser({
+                            ...editingUser,
+                            role: e.target.value as "ADMIN" | "USER",
+                          })
+                        }
+                        className="px-2 py-1 rounded border text-sm"
+                      >
+                        <option value="USER">USER</option>
+                        <option value="ADMIN">ADMIN</option>
+                      </select>
+                    ) : (
+                      <span
+                        className={cn(
+                          "px-2 py-1 rounded-full text-xs font-medium",
+                          user.role === "ADMIN"
+                            ? "bg-primary/10 text-primary"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {user.role === "ADMIN" ? "Quản trị" : "Người dùng"}
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {new Date(user.createdAt).toLocaleDateString("vi-VN")}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      {editingUser?.id === user.id ? (
+                        <>
+                          <button
+                            onClick={() =>
+                              handleUpdateRole(user.id, editingUser.role)
+                            }
+                            className="px-3 py-1 rounded-lg bg-success text-white text-sm"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            onClick={() => setEditingUser(null)}
+                            className="px-3 py-1 rounded-lg bg-muted text-sm"
+                          >
+                            Hủy
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditingUser(user)}
+                            className="p-2 rounded-lg hover:bg-muted"
+                            title="Sửa quyền"
+                          >
+                            <Edit2 className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() =>
+                              handleDeleteUser(user.id, user.username)
+                            }
+                            disabled={deletingUserId === user.id}
+                            className="p-2 rounded-lg hover:bg-danger/10 text-danger disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Xóa"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add User Modal */}

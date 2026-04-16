@@ -11,6 +11,7 @@ interface ConfirmModalProps {
   deviceName: string;
   action: 'on' | 'off';
   isEmergency?: boolean;
+  customMessage?: string;
 }
 
 /**
@@ -24,6 +25,7 @@ export function ConfirmModal({
   deviceName,
   action,
   isEmergency = false,
+  customMessage,
 }: ConfirmModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const confirmBtnRef = useRef<HTMLButtonElement>(null);
@@ -103,7 +105,12 @@ export function ConfirmModal({
             <span className={cn('font-bold', actionColor)}>{actionText}</span>{' '}
             <span className="font-semibold">{deviceName}</span> không?
           </p>
-          {isEmergency && (
+          {customMessage && (
+            <p className="mt-3 text-sm font-medium text-warning bg-warning/10 p-3 rounded-lg border border-warning/20">
+              {customMessage}
+            </p>
+          )}
+          {isEmergency && !customMessage && (
             <p className="mt-2 text-sm text-muted-foreground">
               ⚠️ Đây là thiết bị khẩn cấp. Hãy cân nhắc kỹ trước khi thao tác.
             </p>

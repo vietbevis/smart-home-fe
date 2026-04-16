@@ -24,6 +24,8 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { subscribeToRfidLost } from '@/hooks/useMqtt';
+import { ThemeSettings } from '@/components/settings/ThemeSettings';
+import { ThemeQuickSwitch } from '@/components/settings/ThemeQuickSwitch';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api';
 
@@ -37,7 +39,7 @@ interface UserPanelProps {
 export function UserPanel({ user, connected, onLogout, onUserUpdate }: UserPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'rfid'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'password' | 'rfid' | 'theme'>('profile');
   const router = useRouter();
 
   // Form states
@@ -255,6 +257,18 @@ export function UserPanel({ user, connected, onLogout, onUserUpdate }: UserPanel
                 <CreditCard className="h-4 w-4" />
                 <span className="hidden sm:inline">Thẻ RFID</span>
               </button>
+              <button
+                onClick={() => { setActiveTab('theme'); setError(null); setSuccess(null); }}
+                className={cn(
+                  'flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition-colors',
+                  activeTab === 'theme'
+                    ? 'border-b-2 border-primary text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                )}
+              >
+                <Settings className="h-4 w-4" />
+                <span className="hidden sm:inline">Giao diện</span>
+              </button>
             </div>
 
             {/* Messages */}
@@ -451,6 +465,10 @@ export function UserPanel({ user, connected, onLogout, onUserUpdate }: UserPanel
                   )}
                 </div>
               )}
+              
+              {activeTab === 'theme' && (
+                <ThemeSettings />
+              )}
             </div>
           </div>
         </div>
@@ -488,6 +506,11 @@ export function UserPanel({ user, connected, onLogout, onUserUpdate }: UserPanel
                   {connected ? 'Online' : 'Offline'}
                 </div>
               </div>
+            </div>
+
+            {/* Theme Switcher */}
+            <div className="p-3 border-b">
+              <ThemeQuickSwitch />
             </div>
 
             {/* Actions */}
