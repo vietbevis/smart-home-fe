@@ -27,8 +27,8 @@ export function AmbientInfo({ sensors }: AmbientInfoProps) {
     return { label: 'Tốt', color: 'text-green-500' };
   };
 
-  const tempStatus = getTemperatureStatus(sensors.temperature);
-  const humidityStatus = getHumidityStatus(sensors.humidity);
+  const tempStatus = getTemperatureStatus(sensors.temperature ?? 25);
+  const humidityStatus = getHumidityStatus(sensors.humidity ?? 50);
 
   const hour = currentTime.getHours();
   const getTimeIcon = () => {
@@ -48,7 +48,7 @@ export function AmbientInfo({ sensors }: AmbientInfoProps) {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Nhiệt độ</p>
-            <p className="text-3xl font-bold">{sensors.temperature}°C</p>
+            <p className="text-3xl font-bold">{sensors.temperature ?? '--'}°C</p>
             <p className={`text-sm font-medium mt-1 ${tempStatus.color}`}>
               {tempStatus.label}
             </p>
@@ -64,7 +64,7 @@ export function AmbientInfo({ sensors }: AmbientInfoProps) {
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm text-muted-foreground mb-1">Độ ẩm</p>
-            <p className="text-3xl font-bold">{sensors.humidity}%</p>
+            <p className="text-3xl font-bold">{sensors.humidity ?? '--'}%</p>
             <p className={`text-sm font-medium mt-1 ${humidityStatus.color}`}>
               {humidityStatus.label}
             </p>

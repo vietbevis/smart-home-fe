@@ -42,7 +42,11 @@ export interface SensorData {
   light?: { bright: boolean };
   rain?: { raining: boolean };
   dryer?: { out: boolean };
+  temperature?: number;
+  humidity?: number;
 }
+
+export type Sensors = SensorData;
 
 export interface Alert {
   id: number;

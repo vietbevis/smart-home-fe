@@ -15,7 +15,7 @@ export default function DashboardPage() {
   const { can } = usePermissions();
   const { user } = useAuth();
 
-  const activeDevices = Object.values(devices).filter(d => d.state === 'on').length;
+  const activeDevices = Object.values(devices).filter(d => d.status === 'on').length;
   const totalDevices = Object.keys(devices).length;
 
   const handleEmergencyControl = (
